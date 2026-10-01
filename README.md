@@ -21,7 +21,9 @@ flowchart TD
     F --> H[05 MapMan enrichment<br/>across time of day]
     F --> I[06 GO enrichment<br/>by effect size]
 ```
+Open the repository as an RStudio project and run the scripts in numerical order from the repository root.
 
+Steps `03_1` and `03_2` can run in either order, and steps `04`, `05` and `06` only need `03_3`.
 
 ---
 
@@ -43,10 +45,6 @@ BiocManager::install(c("tximport", "rtracklayer", "DiscoRhythm", "SummarizedExpe
 
 
 ### Running the workflow
-
-Open the repository as an RStudio project and run the scripts in numerical order from the repository root.
-
-Steps `03_1` and `03_2` can run in either order, and steps `04`, `05` and `06` only need `03_3`.
 
 ---
 
@@ -94,8 +92,6 @@ The script expects single-end reads. Set the path to the Salmon executable at th
 
 # Step 3: Detect rhythmic genes
 
-`scripts/03_rhythm_detection/`
-
 ### 03_1_QC_period_detection.R
 
 Quality control and rhythm detection with [DiscoRhythm](https://bioconductor.org/packages/DiscoRhythm/):
@@ -139,7 +135,7 @@ The thresholds are set at the top of each step (`q_thresh`, `min_expression`, `r
 ---
 
 # Step 4: Describe the rhythmic landscape
-scripts/04_rhythmic_landscape
+scripts/04_rhythmic_landscape/rhythmic_landscape
 
 Summarises when and how genes oscillate in each condition. It only writes figures:
 
@@ -168,8 +164,6 @@ Both scripts use the **MapMan4** classification and over-representation analysis
 * **odds-ratio comparison:** for genes rhythmic in both conditions, compares the enrichment of each term in each time bin between conditions, to find functional groups whose timing shifts,
 * **term-level phase shifts:** phase shift of the genes in a term plotted against their acrophase in the reference condition, with trend lines for all terms.
 
-**Output:** `results/` and `figures/05_MapMan_enrichment/` (`Circular_plots/`, `OddsRatio_RhythmicBoth/`, `Phase_Shift_Analysis/`).
-
 ### 05_2_MapMan_sliding_window.R
 
 Replaces fixed time bins with a **sliding window** (e.g. 4 h wide, moved in 1 h steps):
@@ -178,7 +172,6 @@ Replaces fixed time bins with a **sliding window** (e.g. 4 h wide, moved in 1 h 
 * density of acrophases per MapMan term, to show when each functional group peaks,
 * sliding-window version of the circular clock plots.
 
-**Output:** `results/` and `figures/05_MapMan_enrichment/` (`Sliding_Window/`, `Density_Plots/`).
 
 Window width, step size and minimum gene numbers are set at the top of the script.
 
@@ -209,42 +202,11 @@ It then:
 
 Effect-size thresholds avoid relying on per-gene significance tests, which are often underpowered with few replicates.
 
-**Output:** `results/` and `figures/06_GO_effect_size_thresholds/`.
 
-Thresholds, GO ontology and the number of terms shown are set in Part 1 of the script.
-
----
-
-# Adapting the workflow to your experiment
-
-The scripts were written for one experiment, and some settings are fixed in the code:
-
-| What | Where | Example setting |
-|---|---|---|
-| assignment of samples to conditions | `02_expression_matrix.R`, step 5 | samples 1–50 = treatment, 51–100 = control |
-| time points and replicates in column names | `02_expression_matrix.R`, step 6 | 25 time points every 2 h, replicates A and B |
-| condition names in variables and labels | all scripts | `mock` / `dex` |
-| tested periods | `03_1`, sections "Period detection" and "Oscillation detection" | 24, 12 and 8 h |
-| number of CPU cores | `03_2`, `n_workers` | 6 |
-| rhythmicity and filtering thresholds | top of `03_3` | q ≤ 0.05, mesor ≥ 5, relative amplitude ≥ 12 %, Δ ≥ 3 % |
-| candidate gene lists | `04`, "Candidate gene analysis" | *Arabidopsis* clock genes |
-| annotation | `05`, `06` | MapMan4 for Araport11, `org.At.tair.db` |
-
----
-
-# Example
-
-This workflow was developed for the Master's thesis *"TOR kinase shapes the timing of rhythmic outputs in Arabidopsis roots"* (Valentin Rebernig, Centre for Organismal Studies, Heidelberg University, 2026):
-
-* *Arabidopsis thaliana* roots, control and treatment,
-* sampling every 2 h for 48 h (25 time points) under a 12 h light / 12 h dark cycle,
-* 2 replicates per time point, 100 single-end RNA-seq libraries.
 
 ---
 
 ## Citation
-
-If you use this workflow, please cite the tools it builds on:
 
 * **Salmon:** Patro, R. et al. (2017) Salmon provides fast and bias-aware quantification of transcript expression. *Nature Methods* 14, 417–419. https://doi.org/10.1038/nmeth.4197
 * **tximport:** Soneson, C., Love, M.I. & Robinson, M.D. (2015) Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences. *F1000Research* 4, 1521. https://doi.org/10.12688/f1000research.7563.2
@@ -254,6 +216,4 @@ If you use this workflow, please cite the tools it builds on:
 * **clusterProfiler:** Wu, T. et al. (2021) clusterProfiler 4.0: a universal enrichment tool for interpreting omics data. *The Innovation* 2, 100141. https://doi.org/10.1016/j.xinn.2021.100141
 * **MapMan4:** Schwacke, R. et al. (2019) MapMan4: a refined protein classification and annotation framework applicable to multi-omics data analysis. *Molecular Plant* 12, 879–892. https://doi.org/10.1016/j.molp.2019.01.003
 
-## License
 
-TODO (e.g. MIT)
