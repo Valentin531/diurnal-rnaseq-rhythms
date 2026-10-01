@@ -1,0 +1,175 @@
+---
+title: "bulk RNA analysis"
+output: html_document
+date: "2023-07-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fs)
+library(tximport)
+library(DESeq2)
+library(pheatmap)
+library(rstudioapi)
+
+# NOTE! In Rstudio make sure to check Global Options -> Advanced 'Use native file and message dialog boxes'
+
+#if (!require("BiocManager", quietly = TRUE))
+#install.packages("BiocManager")
+
+#BiocManager::install("tximport")
+#BiocManager::install("DESeq2")
+
+#install.packages('pheatmap')
+
+#install.packages('fs')
+```
+
+```{r, select salmon executable}
+
+SALMON <- "/opt/miniconda3/envs/salmon-env/bin/salmon"
+
+```
+
+```{r, select a working directory}
+selectDirectory(caption = (print(paste0("Please select a working directory:"))), label = "Select", path = getActiveProject()) -> DATA_FOLDER
+cat(paste0("Files will be saved in: ",DATA_FOLDER,"/."))
+```
+
+```{r, select the salmon index}
+selectDirectory(caption = (print(paste0("Please select the salmon index for mapping:"))), label = "Select", path = getActiveProject()) -> INDEX
+cat(paste0("The following salmon index file was selected: ",INDEX,"."))
+```
+
+```{r, select the data folder}
+selectDirectory(caption = (print(paste0("Please select the PARENT folder including the folders that contain raw reads that you want to quantify:"))), label = "Select", path = getActiveProject()) -> DATA
+cat(paste0("Samples contained in this folder will be quantified: ",DATA,"/."))
+```
+
+```{r, function to quantify one sample}
+
+quantify <- function(sample_file, output, salmon, index,
+                     threads = 8,
+                     validate = TRUE,
+                     fldMean = NULL, fldSD = NULL,
+                     extra = character(),
+                     doit = TRUE) {
+
+  stopifnot(file.exists(sample_file))
+  stopifnot(dir.exists(index) || file.exists(index))  # salmon index is a directory
+  stopifnot(file.exists(salmon))
+
+  sample <- basename(sample_file)
+  # strip .gz then .fastq/.fq
+  sample <- sub("\\.gz$", "", sample, ignore.case = TRUE)
+  sample <- sub("\\.(fastq|fq)$", "", sample, ignore.case = TRUE)
+
+  out_dir <- file.path(output, paste0(sample, "_quant"))
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+  args <- c(
+    "quant",
+    "-i", index,
+    "-l", "A",
+    "-r", sample_file,
+    "-p", as.integer(threads),
+    "-o", out_dir
+  )
+
+  if (isTRUE(validate)) args <- c(args, "--validateMappings")
+  if (!is.null(fldMean)) args <- c(args, "--fldMean", as.numeric(fldMean))
+  if (!is.null(fldSD))   args <- c(args, "--fldSD",   as.numeric(fldSD))
+  if (length(extra))     args <- c(args, extra)
+
+  if (doit) {
+    system2(salmon, args)
+  } else {
+    message(paste(shQuote(salmon), paste(shQuote(args), collapse = " ")))
+    invisible(0)
+  }
+}
+
+
+```
+
+```{r, quantify all samples in a folder using above function}
+parent.folder <- DATA
+
+# List FASTQ files directly inside DATA (single-end)
+files <- list.files(parent.folder, pattern = "\\.(fastq|fq)(\\.gz)?$", full.names = TRUE)
+
+index  <- INDEX
+output <- file.path(DATA_FOLDER, "quants")
+dir.create(output, recursive = TRUE, showWarnings = FALSE)
+
+# Run (example: first 2 only; remove [1:2] to run all)
+for (sample_file in files[1:2]) {
+
+  quantify(
+    sample_file = sample_file,
+    output = output,
+    salmon = SALMON,
+    index = index,
+    threads = 8,
+    validate = TRUE,
+    doit = TRUE
+  )
+
+  cat(paste0("Finished running sample: ", basename(sample_file), "\n"))
+}
+
+cat("DONE!\n")
+
+```
+
+
+
+
+
+
+
+```{r, function to quantify one sample}
+#### adjusted scripts for older data from Denis ####
+quantify = function(sample_file, output, salmon, doit = TRUE) {
+    sample = basename(sample_file)
+    samples = paste0(file.path(sub.folders[x]),"/",sample_file)
+    output = file.path(output, paste0(sample, "_quant"))
+    args = c(
+        "quant", "-i", index, "-l A",
+        "-r", samples,
+        "-p", parallel::detectCores(),
+        "-o", output
+    )
+    if (doit)
+        system2(salmon, args)
+    else {
+        txt = paste(salmon, paste(args, collapse=" "))
+        message(txt)
+        invisible(0)
+    }
+}
+```
+
+```{r, quantify all samples in a folder using above function}
+# index location
+parent.folder <- DATA
+sub.folders <- list.dirs(parent.folder, recursive=TRUE)[-1]
+
+# Run scripts in sub-folders 
+for (x in seq(sub.folders)){
+  sub.files <- list.files(sub.folders[x])
+for(i in seq(sub.files)) {
+  index=INDEX
+  output= file.path(DATA_FOLDER, "quants")
+  data_dir = file.path(sub.files[i])
+  sample_file = sub.files[i]
+  args = list(salmon = SALMON, output = output, doit = T)
+  Map(quantify, sample_file, MoreArgs = args)
+  cat(paste0("Finished running sample: ",i))
+}
+}
+cat("DONE!")
+```
+
+```{r,}
+```

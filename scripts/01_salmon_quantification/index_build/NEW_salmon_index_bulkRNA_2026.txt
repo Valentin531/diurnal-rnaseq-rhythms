@@ -1,0 +1,24 @@
+set -euo pipefail
+
+GTF=TAIR10_REF.gtf
+GENOME=TAIR10_REF.fa
+
+# Output folder for the decoy index
+OUT=salmon_TAIR10_decoy_index_NEW2026
+
+# 1) Extract transcript sequences from the genome sequence using the GTF(Gene Transfer Format) a 
+# list which includes all the information for locations of the transcripts. This will be stored # in the transcripts.fa file
+#    (Requires gffread from gffcompare/cufflinks suite)
+gffread -w transcripts.fa -g "$GENOME" "$GTF"
+
+# 2) Create a decoy list = all genome contig/chromosome names in the FASTA
+#    (Names are taken from FASTA headers up to first whitespace)
+grep "^>" "$GENOME" | sed 's/^>//' | cut -d' ' -f1 > decoys.txt
+
+# 3) Build a "gentrome" = transcripts + genome. Cat moves both files, the transcript and the    # genome into a new file. The genome is used as a decoy
+cat transcripts.fa "$GENOME" > gentrome.fa
+
+# 4) Build Salmon index with decoys (SA = selective alignment)
+#    -k 31 is typical for plants; 31 is Salmon's common default choice.
+salmon index -t gentrome.fa -d decoys.txt -p 8 -i "$OUT" -k 31
+
