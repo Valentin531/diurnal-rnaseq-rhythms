@@ -10,5 +10,4 @@ The index have been saved at the shared drive found under "jlab/ValentinR/RNA_ma
 
 The rawread data is stored on the big Computer in the informatic room and the code has been running there, because it also needs more computational power to generate it for all 100 samples. 
 
--> Output of all 100 samples, stored under "/Users/ValentinRebernig/Desktop/3. Praktika/3.11 Master Thesis Lohmann/2. R-Scripts/1_Sequencing_Data_Analysis/data/quantified_reads/salmon_quantification
 
